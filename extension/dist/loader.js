@@ -1,0 +1,1 @@
+(async()=>{const o=chrome.runtime.getURL("content.js");console.log("[ACRC] Loading content module from:",o);try{await import(o),console.log("[ACRC] Content module loaded successfully")}catch(e){console.error("[ACRC] Failed to load content module:",e)}})();
