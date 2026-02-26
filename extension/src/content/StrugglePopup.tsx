@@ -1,5 +1,6 @@
 // ============================================================
 // StrugglePopup.tsx — comprehensive "Need help?" popup
+// With glassmorphism aesthetics and context-aware AI
 // ============================================================
 
 import React, { useState } from 'react';
@@ -8,6 +9,7 @@ import { simplifyText, defineWord, SimplifyMode, DefineResponse } from '../lib/a
 interface Props {
     word: string;
     sentence: string;
+    context?: string;
     element: HTMLElement | null;
     rect?: DOMRect;
     onDismiss: () => void;
@@ -20,6 +22,7 @@ interface Props {
 const StrugglePopup: React.FC<Props> = ({
     word,
     sentence,
+    context,
     element,
     rect: selectionRect,
     onDismiss,
@@ -35,15 +38,18 @@ const StrugglePopup: React.FC<Props> = ({
     const [level, setLevel] = useState<1 | 2 | 3>(defaultLevel);
     const [speechRate, setSpeechRate] = useState(1.0);
 
-    // Position near the word (using viewport coords since parent is fixed)
-    const rect = element?.getBoundingClientRect() || selectionRect;
-    let top = rect ? rect.bottom + 8 : 100;
-    const left = rect ? Math.min(rect.left, window.innerWidth - 360) : 100;
+    // Lock position on initially opening so the popup doesn't jitter when state changes
+    const [{ top, left }] = useState(() => {
+        const r = element?.getBoundingClientRect() || selectionRect;
+        let t = r ? r.bottom + 8 : 100;
+        const l = r ? Math.min(r.left, window.innerWidth - 360) : 100;
 
-    // Flip to top if it overflows bottom
-    if (top + 300 > window.innerHeight) {
-        top = rect ? rect.top - 310 : 100;
-    }
+        // Flip to top if it overflows bottom
+        if (t + 300 > window.innerHeight) {
+            t = r ? r.top - 310 : 100;
+        }
+        return { top: t, left: l };
+    });
 
     const handleAction = async (action: string) => {
         if (action === 'speak') {
@@ -60,7 +66,8 @@ const StrugglePopup: React.FC<Props> = ({
 
         try {
             if (action === 'define') {
-                const res = await defineWord({ word });
+                // Context-aware define — pass surrounding context for disambiguation
+                const res = await defineWord({ word, context });
                 if (res.error) {
                     setResult(`Error: ${res.error}`);
                 } else {
@@ -73,12 +80,13 @@ const StrugglePopup: React.FC<Props> = ({
                     return;
                 }
                 const mode = action as SimplifyMode;
-                const res = await simplifyText({ text: sentence, mode, level });
+                // Pass context for better AI understanding
+                const res = await simplifyText({ text: sentence, mode, level, context });
                 if (res.error) {
                     setResult(`Error: ${res.error}`);
                 } else if (mode === 'mindmap' && res.mindmapData) {
                     setResult('mindmap_render');
-                    setDefineResult(res.mindmapData as any); // using defineResult state to hold structured data
+                    setDefineResult(res.mindmapData as any);
                 } else {
                     setResult(res.result);
                 }
@@ -90,18 +98,18 @@ const StrugglePopup: React.FC<Props> = ({
         }
     };
 
-    const btnStyle = (key: string) => ({
-        display: 'flex' as const,
-        alignItems: 'center' as const,
+    const getBtnStyle = (key: string) => ({
+        display: 'flex',
+        alignItems: 'center',
         gap: '4px',
         padding: '6px 10px',
-        background: activeAction === key ? 'rgba(74, 144, 217, 0.3)' : 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: activeAction === key ? 'rgba(74, 144, 217, 0.4)' : 'rgba(255,255,255,0.08)',
+        border: activeAction === key ? '1px solid rgba(74, 144, 217, 0.8)' : '1px solid rgba(255,255,255,0.12)',
         borderRadius: '8px',
         color: '#e0e0e0',
         fontSize: '11px',
         cursor: loading ? 'wait' : 'pointer',
-        transition: 'all 0.2s ease',
+        backdropFilter: 'blur(4px)',
     });
 
     const renderReadingText = () => {
@@ -128,22 +136,24 @@ const StrugglePopup: React.FC<Props> = ({
         <div
             className="acrc-popup"
             style={{
-                position: 'absolute',
+                position: 'fixed',
                 top: `${top}px`,
                 left: `${Math.max(8, left)}px`,
                 width: '350px',
                 maxHeight: '480px',
                 overflowY: 'auto',
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
                 border: '1px solid rgba(74, 144, 217, 0.3)',
                 borderRadius: '16px',
                 padding: '14px',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.1)',
                 zIndex: 2147483646,
                 pointerEvents: 'auto',
-                fontFamily: 'Inter, system-ui, sans-serif',
+                fontFamily: "'OpenDyslexic', 'Comic Sans MS', cursive",
                 color: '#e0e0e0',
-                animation: 'acrc-slide-up 0.3s ease-out',
+                animation: 'acrc-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
         >
             {/* Header */}
@@ -153,7 +163,7 @@ const StrugglePopup: React.FC<Props> = ({
                 </span>
                 <button
                     onClick={onDismiss}
-                    style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '16px', padding: '2px', lineHeight: 1 }}
+                    style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '16px', padding: '2px', lineHeight: 1, transition: 'color 0.2s' }}
                 >✕</button>
             </div>
 
@@ -189,20 +199,20 @@ const StrugglePopup: React.FC<Props> = ({
                     { key: 'explain_sentence', icon: '🧠', label: 'Explain' },
                     { key: 'mindmap', icon: '🗺️', label: 'Mindmap' },
                 ].map(({ key, icon, label }) => (
-                    <button key={key} onClick={() => handleAction(key)} disabled={loading} style={btnStyle(key)}>
+                    <button key={key} onClick={() => handleAction(key)} disabled={loading} className="acrc-btn" style={getBtnStyle(key)}>
                         {icon} {label}
                     </button>
                 ))}
             </div>
 
-            {/* Advanced actions (collapsed row) */}
+            {/* Advanced actions */}
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: result || defineResult ? '10px' : '6px' }}>
                 {[
                     { key: 'breakdown', icon: '✂️', label: 'Break Down' },
                     { key: 'rephrase', icon: '🔄', label: 'Rephrase' },
                     { key: 'bullet_summary', icon: '📋', label: 'Bullets' },
                 ].map(({ key, icon, label }) => (
-                    <button key={key} onClick={() => handleAction(key)} disabled={loading} style={btnStyle(key)}>
+                    <button key={key} onClick={() => handleAction(key)} disabled={loading} className="acrc-btn" style={getBtnStyle(key)}>
                         {icon} {label}
                     </button>
                 ))}
@@ -219,6 +229,7 @@ const StrugglePopup: React.FC<Props> = ({
             {defineResult && !loading && (
                 <div style={{
                     background: 'rgba(255,255,255,0.05)',
+                    backdropFilter: 'blur(8px)',
                     borderRadius: '10px',
                     padding: '12px',
                     fontSize: '12px',
@@ -263,6 +274,7 @@ const StrugglePopup: React.FC<Props> = ({
             {result && result !== 'mindmap_render' && result !== 'reading_render' && !loading && !defineResult && (
                 <div style={{
                     background: 'rgba(255,255,255,0.05)',
+                    backdropFilter: 'blur(8px)',
                     borderRadius: '10px',
                     padding: '12px',
                     fontSize: '12px',
@@ -283,6 +295,7 @@ const StrugglePopup: React.FC<Props> = ({
             {result === 'reading_render' && !loading && (
                 <div style={{
                     background: 'rgba(255,255,255,0.05)',
+                    backdropFilter: 'blur(8px)',
                     borderRadius: '10px',
                     padding: '12px',
                     fontSize: '14px',
@@ -318,6 +331,7 @@ const StrugglePopup: React.FC<Props> = ({
             {result === 'mindmap_render' && !loading && defineResult && (
                 <div style={{
                     background: 'rgba(255,255,255,0.05)',
+                    backdropFilter: 'blur(8px)',
                     borderRadius: '10px',
                     padding: '12px',
                     fontSize: '12px',

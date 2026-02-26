@@ -1,6 +1,9 @@
 // ============================================================
 // StruggleDetector.ts — detects reading difficulty patterns
+// Uses VirtualCursor for zero-DOM-mutation word detection
 // ============================================================
+
+import { VirtualCursor, WordAtPoint } from './VirtualCursor';
 
 export type StruggleType = 'stuck' | 're-reading' | 'paused' | 'selection';
 
@@ -10,6 +13,8 @@ export interface StruggleEvent {
     element: HTMLElement | null;
     timestamp: number;
     rect?: DOMRect;
+    sentence?: string;
+    context?: string;
 }
 
 type StruggleCallback = (event: StruggleEvent) => void;
@@ -21,36 +26,33 @@ const IDLE_THRESHOLD_MS = 8000;       // Paused too long
 
 export class StruggleDetector {
     private onStruggle: StruggleCallback;
-    private hoverTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+    private virtualCursor: VirtualCursor;
     private scrollBackTimes: number[] = [];
     private lastScrollY: number = 0;
     private idleTimer: ReturnType<typeof setTimeout> | null = null;
-    private currentHoveredWord: string = '';
-    private currentHoveredEl: HTMLElement | null = null;
+    private hoverTimer: ReturnType<typeof setTimeout> | null = null;
+    private currentWord: WordAtPoint | null = null;
     private dismissedWords: Set<string> = new Set();
     private active: boolean = false;
 
-    constructor(callback: StruggleCallback) {
+    constructor(callback: StruggleCallback, virtualCursor: VirtualCursor) {
         this.onStruggle = callback;
+        this.virtualCursor = virtualCursor;
     }
 
     start(): void {
         if (this.active) return;
         this.active = true;
-        document.addEventListener('mouseover', this.handleMouseOver);
-        document.addEventListener('mouseout', this.handleMouseOut);
+        document.addEventListener('mousemove', this.handleMouseMove);
         document.addEventListener('scroll', this.handleScroll);
-        document.addEventListener('mousemove', this.resetIdle);
         document.addEventListener('keydown', this.resetIdle);
         this.startIdleTimer();
     }
 
     stop(): void {
         this.active = false;
-        document.removeEventListener('mouseover', this.handleMouseOver);
-        document.removeEventListener('mouseout', this.handleMouseOut);
+        document.removeEventListener('mousemove', this.handleMouseMove);
         document.removeEventListener('scroll', this.handleScroll);
-        document.removeEventListener('mousemove', this.resetIdle);
         document.removeEventListener('keydown', this.resetIdle);
         this.clearAllTimers();
     }
@@ -59,44 +61,52 @@ export class StruggleDetector {
         this.dismissedWords.add(word.toLowerCase());
     }
 
-    private handleMouseOver = (e: MouseEvent): void => {
-        const target = e.target as HTMLElement;
-        if (!target.classList?.contains('acrc-word')) return;
+    private handleMouseMove = (e: MouseEvent): void => {
+        const wordInfo = this.virtualCursor.getWordAtPoint(e.clientX, e.clientY);
 
-        const word = target.dataset.word || target.textContent || '';
-        const idx = target.dataset.idx || '';
-        this.currentHoveredWord = word;
-        this.currentHoveredEl = target;
-
-        if (this.dismissedWords.has(word.toLowerCase())) return;
-
-        // Start hover timer
-        const timer = setTimeout(() => {
-            this.onStruggle({
-                type: 'stuck',
-                word,
-                element: target,
-                timestamp: Date.now(),
-            });
-        }, HOVER_THRESHOLD_MS);
-
-        this.hoverTimers.set(idx, timer);
-        this.resetIdle();
-    };
-
-    private handleMouseOut = (e: MouseEvent): void => {
-        const target = e.target as HTMLElement;
-        if (!target.classList?.contains('acrc-word')) return;
-
-        const idx = target.dataset.idx || '';
-        const timer = this.hoverTimers.get(idx);
-        if (timer) {
-            clearTimeout(timer);
-            this.hoverTimers.delete(idx);
+        if (!wordInfo) {
+            // Cursor is not over a word — clear hover timer
+            if (this.hoverTimer) {
+                clearTimeout(this.hoverTimer);
+                this.hoverTimer = null;
+            }
+            this.currentWord = null;
+            this.resetIdle();
+            return;
         }
 
-        this.currentHoveredWord = '';
-        this.currentHoveredEl = null;
+        const newWordKey = wordInfo.word.toLowerCase();
+
+        // Same word as before — let the timer run
+        if (this.currentWord && this.currentWord.word.toLowerCase() === newWordKey) {
+            this.resetIdle();
+            return;
+        }
+
+        // Different word — reset hover timer
+        if (this.hoverTimer) {
+            clearTimeout(this.hoverTimer);
+            this.hoverTimer = null;
+        }
+
+        this.currentWord = wordInfo;
+        this.resetIdle();
+
+        if (this.dismissedWords.has(newWordKey)) return;
+
+        // Start a new hover timer for this word
+        this.hoverTimer = setTimeout(() => {
+            if (!this.currentWord) return;
+            this.onStruggle({
+                type: 'stuck',
+                word: this.currentWord.word,
+                element: this.currentWord.textNode.parentElement,
+                timestamp: Date.now(),
+                rect: this.currentWord.rect,
+                sentence: this.currentWord.sentence,
+                context: this.currentWord.context,
+            });
+        }, HOVER_THRESHOLD_MS);
     };
 
     private handleScroll = (): void => {
@@ -114,9 +124,12 @@ export class StruggleDetector {
             if (this.scrollBackTimes.length >= SCROLL_BACK_COUNT) {
                 this.onStruggle({
                     type: 're-reading',
-                    word: this.currentHoveredWord,
-                    element: this.currentHoveredEl,
+                    word: this.currentWord?.word || '',
+                    element: this.currentWord?.textNode.parentElement || null,
                     timestamp: now,
+                    rect: this.currentWord?.rect,
+                    sentence: this.currentWord?.sentence,
+                    context: this.currentWord?.context,
                 });
                 this.scrollBackTimes = [];
             }
@@ -134,17 +147,21 @@ export class StruggleDetector {
         this.idleTimer = setTimeout(() => {
             this.onStruggle({
                 type: 'paused',
-                word: this.currentHoveredWord,
-                element: this.currentHoveredEl,
+                word: this.currentWord?.word || '',
+                element: this.currentWord?.textNode.parentElement || null,
                 timestamp: Date.now(),
+                rect: this.currentWord?.rect,
+                sentence: this.currentWord?.sentence,
+                context: this.currentWord?.context,
             });
         }, IDLE_THRESHOLD_MS);
     }
 
     private clearAllTimers(): void {
-        this.hoverTimers.forEach((timer) => clearTimeout(timer));
-        this.hoverTimers.clear();
+        if (this.hoverTimer) clearTimeout(this.hoverTimer);
+        this.hoverTimer = null;
         if (this.idleTimer) clearTimeout(this.idleTimer);
         this.scrollBackTimes = [];
+        this.currentWord = null;
     }
 }

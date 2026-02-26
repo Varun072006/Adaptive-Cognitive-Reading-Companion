@@ -17,9 +17,18 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 extend: true,
-                // Ensure CSS is handled if lib mode doesn't do it automatically
+                // CSS will be inlined via ?inline import for Shadow DOM
+                assetFileNames: 'content.[ext]',
             }
-        }
+        },
+        // Inline CSS into JS for Shadow DOM injection
+        cssMinify: true,
+    },
+    css: {
+        // Allow ?inline imports to return CSS as string
+        modules: {
+            localsConvention: 'camelCase',
+        },
     },
     define: {
         'process.env': {}

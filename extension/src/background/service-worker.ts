@@ -30,11 +30,10 @@ interface ProgressData {
 /* ── Initialize defaults on install ───────────────────────── */
 
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.local.get('acrc_prefs', (data) => {
-        if (!data.acrc_prefs) {
-            chrome.storage.local.set({ acrc_prefs: DEFAULT_PREFERENCES });
-        }
-    });
+    // Always reset prefs to latest defaults on install/update.
+    // This clears old stale prefs (e.g. darkMode, letterSpacing)
+    // that could break page layout.
+    chrome.storage.local.set({ acrc_prefs: DEFAULT_PREFERENCES });
 
     chrome.storage.local.get('acrc_progress', (data) => {
         if (!data.acrc_progress) {

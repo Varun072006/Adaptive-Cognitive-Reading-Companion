@@ -2,13 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* OpenDyslexia font from CDN */
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Bold.woff') format('woff');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 body {
-    width: 360px;
-    min-height: 480px;
+    width: 380px;
+    min-height: 520px;
     margin: 0;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'OpenDyslexic', 'Comic Sans MS', cursive;
     background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
     color: #e0e0e0;
+    font-size: 13px;
+    letter-spacing: 0.03em;
 }
 
 ::-webkit-scrollbar {

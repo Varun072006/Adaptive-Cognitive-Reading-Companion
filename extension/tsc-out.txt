@@ -1,0 +1,5 @@
+﻿src/content/VirtualCursor.ts(77,57): error TS2345: Argument of type 'Node' is not assignable to parameter of type 'Text'.
+  Type 'Node' is missing the following properties from type 'Text': wholeText, splitText, data, length, and 12 more.
+src/content/VirtualCursor.ts(78,56): error TS2345: Argument of type 'Node' is not assignable to parameter of type 'Text'.
+  Type 'Node' is missing the following properties from type 'Text': wholeText, splitText, data, length, and 12 more.
+src/content/VirtualCursor.ts(80,53): error TS2740: Type 'Node' is missing the following properties from type 'Text': wholeText, splitText, data, length, and 12 more.

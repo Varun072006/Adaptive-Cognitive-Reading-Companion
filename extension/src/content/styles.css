@@ -1,70 +1,38 @@
-/* Content script styles — injected into every webpage */
+/* Content script styles — injected into Shadow DOM */
 
-.acrc-word {
-    cursor: pointer;
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Bold.woff') format('woff');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+.acrc-btn {
     transition: all 0.2s ease;
-    border-radius: 2px;
-    display: inline-block;
-    vertical-align: baseline;
-    position: relative;
-    /* Prevent the word from breaking across lines */
-    white-space: nowrap;
 }
 
-/* Hover state — word becomes bold, slightly bigger, and highlighted */
-.acrc-word:hover {
-    font-weight: 700 !important;
-    transform: scale(1.15) !important;
-    transform-origin: center bottom !important;
-    background: rgba(74, 144, 217, 0.15) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(74, 144, 217, 0.25) !important;
-    border-radius: 4px !important;
-    z-index: 999999 !important;
-    text-decoration: none !important;
-    transition: transform 0.2s ease, background 0.2s ease !important;
+.acrc-btn:hover:not(:disabled) {
+    background: rgba(74, 144, 217, 0.4) !important;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(74, 144, 217, 0.2);
 }
 
-/* Visual progress bar for struggle detection tipping point */
-.acrc-word:hover::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    height: 2px;
-    background: #4A90D9;
-    width: 0%;
-    animation: acrc-hover-progress 2s linear forwards;
-    border-radius: 1px;
-    pointer-events: none;
+.acrc-tab {
+    transition: all 0.2s ease;
 }
 
-@keyframes acrc-hover-progress {
-    from {
-        width: 0%;
-    }
-
-    to {
-        width: 100%;
-    }
-}
-
-.acrc-word--active {
-    transform: scale(1.2) !important;
-    font-weight: 800 !important;
-    display: inline-block;
-    background: rgba(74, 144, 217, 0.2) !important;
-    box-shadow: 0 0 8px rgba(74, 144, 217, 0.3), 0 0 0 3px rgba(74, 144, 217, 0.2);
-    border-radius: 4px;
-    position: relative;
-    z-index: 11;
-}
-
-.acrc-word--speaking {
-    background: rgba(82, 183, 136, 0.25) !important;
-    box-shadow: 0 0 12px rgba(82, 183, 136, 0.3), 0 0 0 3px rgba(82, 183, 136, 0.4);
-    border-radius: 4px;
-    font-weight: 700 !important;
-    transform: scale(1.1);
+.acrc-tab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
 }
 
 @keyframes acrc-slide-up {
@@ -89,48 +57,4 @@
     50% {
         box-shadow: 0 0 0 6px rgba(74, 144, 217, 0);
     }
-}
-
-/* Gaze tracking cursor dot */
-.acrc-gaze-dot {
-    position: fixed;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: rgba(255, 107, 157, 0.5);
-    border: 2px solid rgba(255, 107, 157, 0.8);
-    pointer-events: none;
-    z-index: 2147483640;
-    transform: translate(-50%, -50%);
-    transition: left 0.1s ease, top 0.1s ease;
-    animation: acrc-pulse 2s infinite;
-}
-
-/* Reading ruler smoothing */
-.acrc-ruler {
-    will-change: top;
-}
-
-.acrc-focus-top,
-.acrc-focus-bottom {
-    will-change: height, top;
-}
-
-/* Webcam preview (small, corner) */
-.acrc-webcam-preview {
-    position: fixed;
-    bottom: 12px;
-    left: 12px;
-    width: 120px;
-    height: 90px;
-    border-radius: 12px;
-    border: 2px solid rgba(255, 107, 157, 0.4);
-    z-index: 2147483640;
-    opacity: 0.7;
-    transition: opacity 0.3s;
-    object-fit: cover;
-}
-
-.acrc-webcam-preview:hover {
-    opacity: 1;
 }

@@ -31,33 +31,8 @@ const ReaderOverlay: React.FC<Props> = ({
         [rulerEnabled, lineFocusEnabled]
     );
 
-    // Hover highlight on `acrc-word` spans
-    useEffect(() => {
-        if (!highlightOnHover) return;
-
-        const handleOver = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            if (target.classList?.contains('acrc-word')) {
-                target.style.background = `${highlightColor}22`;
-                target.style.boxShadow = `0 0 0 2px ${highlightColor}44`;
-                target.style.borderRadius = '3px';
-            }
-        };
-        const handleOut = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            if (target.classList?.contains('acrc-word')) {
-                target.style.background = '';
-                target.style.boxShadow = '';
-            }
-        };
-
-        document.addEventListener('mouseover', handleOver);
-        document.addEventListener('mouseout', handleOut);
-        return () => {
-            document.removeEventListener('mouseover', handleOver);
-            document.removeEventListener('mouseout', handleOut);
-        };
-    }, [highlightOnHover, highlightColor]);
+    // Word hover highlight is now handled by VirtualCursor
+    // This component only manages the ruler and line focus overlays
 
     useEffect(() => {
         window.addEventListener('mousemove', handleMouseMove);

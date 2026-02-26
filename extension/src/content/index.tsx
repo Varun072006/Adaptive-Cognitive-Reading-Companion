@@ -1,185 +1,73 @@
 // ============================================================
-// Content Script entry — mounts into the page
+// Content Script entry — mounts into the page via Shadow DOM
 // ============================================================
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
-import { parseDom, cleanDom } from './DomParser';
+import { VirtualCursor, WordAtPoint } from './VirtualCursor';
 import { StruggleDetector, StruggleEvent } from './StruggleDetector';
 import { TTSEngine } from './TTSEngine';
-import { GazeTracker } from './GazeTracker';
-import ReaderOverlay from './ReaderOverlay';
 import StrugglePopup from './StrugglePopup';
-import { analyzeReadingLevel, ReadingLevelResult } from '../lib/ReadingLevel';
 import { DEFAULT_PREFERENCES, Preferences } from '../lib/constants';
-import './styles.css';
+import contentStyles from './styles.css?inline';
 
 console.log('[ACRC] Content script pre-load');
 
 /* ── URL blacklist — skip non-reading pages ─────────────── */
 
-const SKIP_URL_PATTERNS = [
-    /^https?:\/\/(www\.)?google\.[a-z.]+\/(search|maps|mail|calendar)/i,
-    /^https?:\/\/(www\.)?bing\.com\/search/i,
-    /^https?:\/\/(www\.)?duckduckgo\.com/i,
-    /^https?:\/\/(www\.)?yahoo\.com\/search/i,
-    /^https?:\/\/mail\./i,
-    /^https?:\/\/(www\.)?(youtube|youtu\.be)/i,
-    /^https?:\/\/(www\.)?(twitter|x)\.com/i,
-    /^https?:\/\/(www\.)?facebook\.com/i,
-    /^https?:\/\/(www\.)?instagram\.com/i,
-    /^https?:\/\/(www\.)?reddit\.com/i,
-    /^https?:\/\/(www\.)?github\.com/i,
-    /^https?:\/\/(www\.)?docs\.google\.com/i,
-    /^chrome(-extension)?:\/\//i,
-    /^about:/i,
-];
+const SKIP_URL_PATTERNS: RegExp[] = [];
 
 function shouldSkipPage(): boolean {
     const url = window.location.href;
     return SKIP_URL_PATTERNS.some(pattern => pattern.test(url));
 }
 
-/* ── Theme & Focus CSS injection ──────────────────────────── */
+/* ── Font injection (OpenDyslexia into host page <head>) ── */
 
-const BG_COLORS: Record<string, string> = {
-    default: '',
-    cream: '#FFF8E7',
-    'light-blue': '#E8F4FD',
-    'light-green': '#E8F5E9',
-    dark: '#1a1a1a',
-};
-
-const ADS_SELECTORS = [
-    '[class*="ad-"]', '[class*="sidebar"]', '[class*="banner"]',
-    '[id*="ad-"]', '[id*="sidebar"]', 'aside',
-    '[class*="promo"]', '[class*="sponsor"]', '.ad', '.ads',
-    'iframe[src*="doubleclick"]', 'iframe[src*="googlesyndication"]',
-];
-
-/* ── Theme & Focus logic (Hydration-Safe Style Injection) ─── */
-
-function applyTheme(prefs: Preferences) {
+function applyFont(enabled: boolean) {
     const id = 'acrc-dynamic-theme';
     document.getElementById(id)?.remove();
-
-    const bgColor = BG_COLORS[prefs.bgColor];
-    let filterArr = [];
-    if (prefs.darkMode && prefs.bgColor !== 'dark') filterArr.push('invert(0.9) hue-rotate(180deg)');
-    if (prefs.highContrast) filterArr.push('contrast(1.4)');
-    const filter = filterArr.length > 0 ? filterArr.join(' ') : 'none';
+    if (!enabled) return;
 
     const style = document.createElement('style');
     style.id = id;
     style.textContent = `
-        html {
-            ${prefs.fontSize !== 100 ? `font-size: ${prefs.fontSize}% !important;` : ''}
-            ${prefs.font === 'dyslexic' ? 'font-family: "OpenDyslexic", "Comic Sans MS", cursive !important;' : ''}
-            ${prefs.font === 'lexie' ? 'font-family: "Lexie Readable", "Verdana", sans-serif !important;' : ''}
-            letter-spacing: ${prefs.letterSpacing}em !important;
-            word-spacing: ${prefs.wordSpacing}em !important;
-            line-height: ${prefs.lineHeight} !important;
-            filter: ${filter} !important;
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
         }
-        ${bgColor ? `body { background-color: ${bgColor} !important; ${prefs.bgColor === 'dark' ? 'color: #e0e0e0 !important;' : ''} }` : ''}
-        ${prefs.darkMode ? 'html img, html video, html canvas { filter: invert(1) hue-rotate(180deg) !important; }' : ''}
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Bold.woff') format('woff');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        body, body * {
+            font-family: "OpenDyslexic", "Comic Sans MS", cursive !important;
+        }
     `;
     document.head.appendChild(style);
 }
 
-function clearTheme() {
+function clearFont() {
     document.getElementById('acrc-dynamic-theme')?.remove();
-    document.getElementById('acrc-hide-ads')?.remove();
-    document.getElementById('acrc-para-isolation')?.remove();
-}
-
-function hideAds(enabled: boolean) {
-    const id = 'acrc-hide-ads';
-    document.getElementById(id)?.remove();
-    if (!enabled) return;
-
-    const style = document.createElement('style');
-    style.id = id;
-    style.textContent = ADS_SELECTORS.join(', ') + ' { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; }';
-    document.head.appendChild(style);
-}
-
-function enableParagraphIsolation(enabled: boolean) {
-    const id = 'acrc-para-isolation';
-    document.getElementById(id)?.remove();
-    if (!enabled) return;
-
-    const style = document.createElement('style');
-    style.id = id;
-    style.textContent = `
-        p, li, td, article p, main p, .content p {
-            transition: opacity 0.3s ease, filter 0.3s ease !important;
-            opacity: 0.25 !important;
-            filter: blur(1.5px) !important;
-        }
-        p:hover, li:hover, td:hover, p.acrc-para-focus, li.acrc-para-focus, td.acrc-para-focus {
-            opacity: 1 !important;
-            filter: none !important;
-        }
-    `;
-    document.head.appendChild(style);
-    console.log('[ACRC] Paragraph isolation style injected');
-}
-
-/* ── Inject supplementary styles ──────────────────────────── */
-
-function injectThemeStyles() {
-    const id = 'acrc-theme-styles';
-    if (document.getElementById(id)) return;
-
-    const style = document.createElement('style');
-    style.id = id;
-    style.textContent = `
-        .acrc-high-contrast {
-            filter: contrast(1.4);
-        }
-        .acrc-dark-mode {
-            filter: invert(0.9) hue-rotate(180deg);
-        }
-        .acrc-dark-mode img,
-        .acrc-dark-mode video,
-        .acrc-dark-mode canvas {
-            filter: invert(1) hue-rotate(180deg);
-        }
-        .acrc-reading-level {
-            position: fixed;
-            bottom: 16px;
-            right: 16px;
-            z-index: 2147483640;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-family: Inter, system-ui, sans-serif;
-            font-size: 11px;
-            font-weight: 600;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-            pointer-events: auto;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .acrc-reading-level:hover {
-            transform: scale(1.05);
-        }
-    `;
-    document.head.appendChild(style);
 }
 
 /* ── Main App ─────────────────────────────────────────────── */
 
-const App: React.FC = () => {
+const App: React.FC<{ shadowContainer: HTMLElement }> = ({ shadowContainer }) => {
     const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
     const [struggleEvent, setStruggleEvent] = useState<StruggleEvent | null>(null);
     const [showPopup, setShowPopup] = useState(false);
     const [showSoftSuggest, setShowSoftSuggest] = useState(false);
-    const [readingLevel, setReadingLevel] = useState<ReadingLevelResult | null>(null);
     const [spokenCharIndex, setSpokenCharIndex] = useState(-1);
     const ttsRef = useRef<TTSEngine | null>(null);
     const detectorRef = useRef<StruggleDetector | null>(null);
-    const gazeRef = useRef<GazeTracker | null>(null);
+    const virtualCursorRef = useRef<VirtualCursor | null>(null);
 
     // Session tracking refs
     const sessionStartRef = useRef<number>(Date.now());
@@ -215,9 +103,16 @@ const App: React.FC = () => {
 
     // Load prefs from storage & listen for changes
     useEffect(() => {
-        chrome.storage.local.get('acrc_prefs', (data) => {
+        chrome.storage.local.get('acrc_prefs', (data: any) => {
             if (data.acrc_prefs) {
-                setPrefs({ ...DEFAULT_PREFERENCES, ...data.acrc_prefs });
+                // Strip old keys that no longer exist in DEFAULT_PREFERENCES
+                const cleaned: any = {};
+                for (const key of Object.keys(DEFAULT_PREFERENCES)) {
+                    cleaned[key] = data.acrc_prefs[key] ?? (DEFAULT_PREFERENCES as any)[key];
+                }
+                setPrefs(cleaned);
+                // Persist the cleaned version
+                chrome.storage.local.set({ acrc_prefs: cleaned });
             }
         });
         const listener = (changes: any) => {
@@ -229,70 +124,89 @@ const App: React.FC = () => {
         return () => chrome.storage.onChanged.removeListener(listener);
     }, []);
 
-    // Apply theme when prefs change
+    // Apply OpenDyslexia font when prefs change
     useEffect(() => {
         if (!prefs.enabled) {
-            clearTheme();
-            cleanDom();
+            clearFont();
             return;
         }
-        injectThemeStyles();
-        applyTheme(prefs);
-        hideAds(prefs.hideAds);
-        enableParagraphIsolation(prefs.paragraphIsolation);
+        applyFont(true);
 
         return () => {
-            clearTheme();
-            cleanDom();
+            clearFont();
         };
-    }, [prefs]);
+    }, [prefs.enabled]);
 
-    // Initialize DOM parser, struggle detector, TTS
+    // Listen for popup tool button actions
+    useEffect(() => {
+        const handleMessage = (msg: any, _sender: any, sendResponse: (response?: any) => void) => {
+            if (msg.type !== 'ACRC_ACTION') return false;
+
+            const selection = window.getSelection();
+            const text = selection?.toString().trim() || '';
+
+            if (!text || text.length < 2) {
+                sendResponse({ message: '⚠️ Select some text on the page first' });
+                return true;
+            }
+
+            // Create a struggle event for the selected text
+            const range = selection!.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+
+            setStruggleEvent({
+                type: 'selection',
+                word: text.length > 30 ? text.substring(0, 30) + '...' : text,
+                element: null,
+                timestamp: Date.now(),
+                rect,
+                sentence: text,
+                context: text,
+            });
+
+            setShowPopup(true);
+            setShowSoftSuggest(false);
+            sendResponse({ message: `✅ Opening ${msg.action} for selected text` });
+            return true;
+        };
+
+        chrome.runtime.onMessage.addListener(handleMessage);
+        return () => chrome.runtime.onMessage.removeListener(handleMessage);
+    }, []);
+
+    // Initialize Virtual Cursor, struggle detector, TTS
     useEffect(() => {
         if (!prefs.enabled) return;
 
         console.log('[ACRC] Initializing features on:', window.location.hostname);
 
-        const runParsing = () => {
-            const wordCount = parseDom();
-            wordCountRef.current = wordCount;
-            console.log(`[ACRC] Parsed ${wordCount} words`);
+        // Virtual Cursor — no DOM modification
+        const vc = new VirtualCursor('#4A90D9');
+        virtualCursorRef.current = vc;
 
-            // Calculate reading level
-            const bodyText = document.body.innerText || '';
-            if (bodyText.length > 100) {
-                setReadingLevel(analyzeReadingLevel(bodyText.substring(0, 10000)));
-            }
+        // Estimate word count without modifying DOM
+        const runEstimate = () => {
+            const wordCount = VirtualCursor.estimateWordCount();
+            wordCountRef.current = wordCount;
+            console.log(`[ACRC] Estimated ${wordCount} words (zero-DOM-mutation)`);
         };
 
-        // Use requestIdleCallback if available, or a short timeout
         if ('requestIdleCallback' in window) {
-            (window as any).requestIdleCallback(() => runParsing());
+            (window as any).requestIdleCallback(() => runEstimate());
         } else {
-            setTimeout(runParsing, 500);
+            setTimeout(runEstimate, 500);
         }
 
-        // MutationObserver for dynamic content (Wikipedia sidebars, lazy loads, SPAs)
-        const observer = new MutationObserver((mutations) => {
-            let shouldReparse = false;
-            for (const mutation of mutations) {
-                if (mutation.addedNodes.length > 0) {
-                    // Only re-parse if significant text was added
-                    shouldReparse = true;
-                    break;
-                }
+        // Word highlight on hover — bold + enlarge
+        const handleMouseMoveHighlight = (e: MouseEvent) => {
+            const wordInfo = vc.getWordAtPoint(e.clientX, e.clientY);
+            if (wordInfo) {
+                vc.showHighlight(wordInfo.rect, shadowContainer, wordInfo.word);
+            } else {
+                vc.hideHighlight();
             }
-            if (shouldReparse) {
-                // Debounce re-parsing
-                const timer = (window as any).acrcParseTimer;
-                if (timer) clearTimeout(timer);
-                (window as any).acrcParseTimer = setTimeout(() => {
-                    parseDom();
-                }, 1000);
-            }
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
+        };
+        document.addEventListener('mousemove', handleMouseMoveHighlight);
 
         // TTS engine
         ttsRef.current = new TTSEngine({
@@ -300,14 +214,14 @@ const App: React.FC = () => {
             pitch: prefs.ttsPitch,
             voiceURI: prefs.ttsVoiceURI,
         });
-        ttsRef.current.setOnWordBoundary((idx) => setSpokenCharIndex(idx));
+        ttsRef.current.setOnWordBoundary((idx: number) => setSpokenCharIndex(idx));
         ttsRef.current.setOnEnd(() => setSpokenCharIndex(-1));
 
-        // Click-to-speak
+        // Click-to-speak using VirtualCursor
         const handleWordClick = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            if (target.classList?.contains('acrc-word') && ttsRef.current) {
-                ttsRef.current.speakWord(target.textContent || '');
+            const wordInfo = vc.getWordAtPoint(e.clientX, e.clientY);
+            if (wordInfo && ttsRef.current) {
+                ttsRef.current.speakWord(wordInfo.word);
             }
         };
         document.addEventListener('click', handleWordClick);
@@ -327,10 +241,12 @@ const App: React.FC = () => {
 
                     setStruggleEvent({
                         type: 'selection',
-                        word: text.length > 30 ? text.substring(0, 30) + '...' : text, // Display a snippet as 'word'
+                        word: text.length > 30 ? text.substring(0, 30) + '...' : text,
                         element: null,
                         timestamp: Date.now(),
-                        rect
+                        rect,
+                        sentence: text,
+                        context: text,
                     });
 
                     setShowPopup(true);
@@ -339,14 +255,13 @@ const App: React.FC = () => {
         };
         document.addEventListener('selectionchange', handleSelectionChange);
 
-        // Struggle detector (cursor dwell)
+        // Struggle detector (uses VirtualCursor internally)
         if (prefs.struggleDetectionEnabled) {
             detectorRef.current = new StruggleDetector((event: StruggleEvent) => {
                 setStruggleEvent(event);
                 setShowSoftSuggest(true);
-                setShowPopup(false); // Hide full popup initially
+                setShowPopup(false);
 
-                // Report confused word to service worker for tracking
                 if (event.word) {
                     confusedWordsRef.current.push(event.word);
                     try {
@@ -356,45 +271,28 @@ const App: React.FC = () => {
                         });
                     } catch { /* ignore */ }
                 }
-            });
+            }, vc);
             detectorRef.current.start();
         }
 
-        // Gaze tracker (webcam eye tracking — only if user opted in)
-        if (prefs.privacyCameraEnabled && prefs.struggleDetectionEnabled) {
-            gazeRef.current = new GazeTracker({
-                fixationThresholdMs: 3000,
-                showGazeDot: true,
-                showWebcam: true,
-                onConfusion: (element, word) => {
-                    setStruggleEvent({
-                        type: 'stuck',
-                        word,
-                        element,
-                        timestamp: Date.now(),
-                    });
-                    setShowSoftSuggest(true);
-                    setShowPopup(false);
-                },
-            });
-            gazeRef.current.start();
-        }
-
         return () => {
+            document.removeEventListener('mousemove', handleMouseMoveHighlight);
             document.removeEventListener('click', handleWordClick);
             document.removeEventListener('selectionchange', handleSelectionChange);
             detectorRef.current?.stop();
-            gazeRef.current?.stop();
-            cleanDom();
+            vc.destroy();
         };
-    }, [prefs.enabled, prefs.struggleDetectionEnabled, prefs.privacyCameraEnabled]);
+    }, [prefs.enabled, prefs.struggleDetectionEnabled]);
 
     // Get the sentence containing the struggled word
     const getSentence = useCallback((): string => {
-        if (!struggleEvent?.element) return struggleEvent?.word || '';
-        const parent = struggleEvent.element.closest('p, div, li, td, h1, h2, h3, h4, h5, h6, span');
-        return parent?.textContent?.trim() || struggleEvent.word;
+        return struggleEvent?.sentence || struggleEvent?.word || '';
     }, [struggleEvent]);
+
+    // Get the context (current + preceding sentences) for AI
+    const getContext = useCallback((): string => {
+        return struggleEvent?.context || getSentence();
+    }, [struggleEvent, getSentence]);
 
     const handleDismiss = useCallback(() => {
         setShowPopup(false);
@@ -421,17 +319,12 @@ const App: React.FC = () => {
 
     return (
         <>
-            <ReaderOverlay
-                rulerEnabled={prefs.rulerEnabled}
-                lineFocusEnabled={prefs.lineFocusEnabled}
-                highlightOnHover={prefs.highlightOnHover}
-                highlightColor={prefs.highlightColor}
-            />
-
+            {/* Soft suggest bubble — appears on struggle */}
             {showSoftSuggest && struggleEvent && !showPopup && (
                 <div
+                    className="acrc-tab"
                     style={{
-                        position: 'absolute',
+                        position: 'fixed',
                         top: struggleEvent.rect ? struggleEvent.rect.bottom + 8 : (struggleEvent.element?.getBoundingClientRect().bottom || 0) + 8,
                         left: Math.max(8, struggleEvent.rect ? struggleEvent.rect.left : (struggleEvent.element?.getBoundingClientRect().left || 0)),
                         background: 'linear-gradient(135deg, #4A90D9 0%, #7B68EE 100%)',
@@ -446,7 +339,10 @@ const App: React.FC = () => {
                         animation: 'acrc-slide-up 0.2s ease-out',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px'
+                        gap: '6px',
+                        backdropFilter: 'blur(12px)',
+                        pointerEvents: 'auto',
+                        fontFamily: "'OpenDyslexic', 'Comic Sans MS', cursive"
                     }}
                     onClick={() => {
                         setShowSoftSuggest(false);
@@ -461,51 +357,62 @@ const App: React.FC = () => {
                 </div>
             )}
 
+            {/* Full struggle popup — with all AI features */}
             {showPopup && struggleEvent && (
                 <StrugglePopup
                     word={struggleEvent.word}
                     sentence={struggleEvent.type === 'selection' ? window.getSelection()?.toString() || struggleEvent.word : getSentence()}
+                    context={getContext()}
                     element={struggleEvent.element}
                     rect={struggleEvent.rect}
                     onDismiss={handleDismiss}
                     onDismissWord={handleDismissWord}
                     onSpeak={handleSpeak}
                     spokenCharIndex={spokenCharIndex}
-                    defaultLevel={
-                        readingLevel
-                            ? (readingLevel.gradeLevel > 12 ? 3 : readingLevel.gradeLevel > 8 ? 2 : 1)
-                            : prefs.simplificationLevel as (1 | 2 | 3)
-                    }
+                    defaultLevel={prefs.simplificationLevel as (1 | 2 | 3)}
                 />
-            )}
-
-            {readingLevel && (
-                <div
-                    className="acrc-reading-level"
-                    style={{ background: readingLevel.color, color: '#fff' }}
-                    title={`Flesch-Kincaid Grade: ${readingLevel.gradeLevel}`}
-                    onClick={() => {
-                        if (readingLevel.suggestSimplify) {
-                            // Optionally trigger something?
-                        }
-                    }}
-                >
-                    {readingLevel.difficulty} Reading
-                </div>
             )}
         </>
     );
 };
 
-/* ── Mount into page (skip blacklisted URLs) ─────────────── */
+/* ── Mount into Shadow DOM (skip blacklisted URLs) ────────── */
 
 if (!shouldSkipPage()) {
+    const host = document.createElement('div');
+    host.id = 'acrc-host';
+    host.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;z-index:2147483647;pointer-events:none;overflow:visible;';
+    document.body.appendChild(host);
+
+    // Shadow DOM — isolates extension UI from host CSS
+    const shadow = host.attachShadow({ mode: 'open' });
+
+    // Inject extension styles into shadow root
+    const style = document.createElement('style');
+    style.textContent = contentStyles + `
+        :host {
+            all: initial;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2147483647;
+            pointer-events: none;
+            overflow: visible;
+            font-family: "OpenDyslexic", "Comic Sans MS", cursive !important;
+        }
+        * {
+            box-sizing: border-box;
+        }
+    `;
+    shadow.appendChild(style);
+
     const container = document.createElement('div');
     container.id = 'acrc-root';
-    // Use fixed positioning so overlays (ruler, focus) work correctly across scroll
-    container.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2147483647;pointer-events:none;overflow:visible;';
-    document.body.appendChild(container);
+    container.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;overflow:visible;';
+    shadow.appendChild(container);
 
     const root = ReactDOM.createRoot(container);
-    root.render(<App />);
+    root.render(<App shadowContainer={container} />);
 }

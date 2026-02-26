@@ -21,6 +21,7 @@ export interface SimplifyRequest {
     text: string;
     mode: SimplifyMode;
     level?: 1 | 2 | 3;
+    context?: string;
 }
 
 export interface SimplifyResponse {
@@ -31,6 +32,7 @@ export interface SimplifyResponse {
 
 export interface DefineRequest {
     word: string;
+    context?: string;
 }
 
 export interface DefineResponse {

@@ -4,29 +4,15 @@ export const DEFAULT_PREFERENCES = {
     // Master toggle
     enabled: true,
 
-    // Typography
-    font: 'system' as 'system' | 'dyslexic' | 'lexie',
-    fontSize: 100,             // percentage (100 = normal)
-    letterSpacing: 0.05,       // em
-    wordSpacing: 0.1,          // em
-    lineHeight: 1.8,
-
-    // Visual themes
-    highlightColor: '#4A90D9',
-    highContrast: false,
-    darkMode: false,
-    bgColor: 'default' as 'default' | 'cream' | 'light-blue' | 'light-green' | 'dark',
+    // Typography — always OpenDyslexia
+    font: 'dyslexic' as 'system' | 'dyslexic',
 
     // Reading aids
-    rulerEnabled: true,
-    lineFocusEnabled: false,
     highlightOnHover: true,
-    paragraphIsolation: false,
-    hideAds: false,
 
-    // AI
+    // AI / Struggle detection
     struggleDetectionEnabled: true,
-    simplificationLevel: 2 as 1 | 2 | 3, // default simplification level
+    simplificationLevel: 2 as 1 | 2 | 3,
 
     // TTS
     ttsRate: 0.9,
