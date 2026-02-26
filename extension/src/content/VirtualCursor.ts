@@ -241,20 +241,21 @@ export class VirtualCursor {
             this.highlighter.style.cssText = `
                 position: fixed;
                 pointer-events: none;
-                z-index: 2147483644;
+                z-index: 2147483647;
                 transition: top 0.06s ease-out, left 0.06s ease-out, opacity 0.12s ease;
                 font-family: 'OpenDyslexic', 'Comic Sans MS', 'Verdana', system-ui, sans-serif;
                 font-weight: 800;
-                color: #1a1a2e;
-                background: rgba(255, 255, 255, 0.92);
-                backdrop-filter: blur(6px);
-                -webkit-backdrop-filter: blur(6px);
-                border-radius: 6px;
-                padding: 2px 6px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.18), 0 0 0 1.5px rgba(74, 144, 217, 0.4);
+                color: #ffffff;
+                background: rgba(74, 144, 217, 0.95);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border-radius: 8px;
+                padding: 4px 10px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 0 2px rgba(255, 255, 255, 0.3);
                 white-space: nowrap;
                 letter-spacing: 0.04em;
                 line-height: 1.3;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
             `;
             container.appendChild(this.highlighter);
         }

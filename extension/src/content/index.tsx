@@ -48,6 +48,7 @@ function applyFont(enabled: boolean) {
         }
         body, body * {
             font-family: "OpenDyslexic", "Comic Sans MS", cursive !important;
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 32 32'%3E%3Cpath d='M8 4l16 12-16 12V4z' fill='%23FF4A4A' stroke='white' stroke-width='3'/%3E%3C/svg%3E") 8 4, auto !important;
         }
     `;
     document.head.appendChild(style);
@@ -68,6 +69,12 @@ const App: React.FC<{ shadowContainer: HTMLElement }> = ({ shadowContainer }) =>
     const ttsRef = useRef<TTSEngine | null>(null);
     const detectorRef = useRef<StruggleDetector | null>(null);
     const virtualCursorRef = useRef<VirtualCursor | null>(null);
+    const showPopupRef = useRef(false);
+
+    // Sync ref with state for the struggle detector callback
+    useEffect(() => {
+        showPopupRef.current = showPopup;
+    }, [showPopup]);
 
     // Session tracking refs
     const sessionStartRef = useRef<number>(Date.now());
@@ -258,9 +265,11 @@ const App: React.FC<{ shadowContainer: HTMLElement }> = ({ shadowContainer }) =>
         // Struggle detector (uses VirtualCursor internally)
         if (prefs.struggleDetectionEnabled) {
             detectorRef.current = new StruggleDetector((event: StruggleEvent) => {
+                // If the user already has the full popup open, don't interrupt them
+                if (showPopupRef.current) return;
+
                 setStruggleEvent(event);
                 setShowSoftSuggest(true);
-                setShowPopup(false);
 
                 if (event.word) {
                     confusedWordsRef.current.push(event.word);

@@ -18,7 +18,10 @@
                 "assets/*",
                 "content.js",
                 "loader.js",
-                "service-worker.js"
+                "service-worker.js",
+                "mermaid-viewer.html",
+                "mermaid.min.js",
+                "mermaid-viewer.js"
             ],
             "matches": [
                 "<all_urls>"
