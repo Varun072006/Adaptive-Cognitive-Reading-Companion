@@ -1,1 +1,1 @@
-const e={enabled:!0,font:"dyslexic",highlightOnHover:!0,struggleDetectionEnabled:!0,simplificationLevel:2,ttsRate:.9,ttsPitch:1,ttsVoiceURI:null,privacyAIEnabled:!0,privacyCameraEnabled:!1,privacyLogsEnabled:!0};export{e as D};
+const e={enabled:!0,font:"dyslexic",highlightOnHover:!0,struggleDetectionEnabled:!0,simplificationLevel:2,ttsRate:.9,ttsPitch:1,ttsVoiceURI:null,privacyAIEnabled:!0,privacyCameraEnabled:!1,privacyLogsEnabled:!0,pageBgColor:"cream"};export{e as D};

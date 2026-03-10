@@ -3,9 +3,10 @@ import React, { useEffect, useRef, useState } from 'react';
 interface MermaidRendererProps {
     chart: string;
     zoom?: number;
+    onSpeak?: (text: string) => void;
 }
 
-const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart, zoom = 1.0 }) => {
+const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart, zoom = 1.0, onSpeak }) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isReady, setIsReady] = useState(false);
     const [height, setHeight] = useState(400);
@@ -19,7 +20,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart, zoom = 1.0 }) 
             console.log('Sending render request to iframe for chart:', chart);
             setLoading(true);
             setError(null);
-            
+
             iframeRef.current.contentWindow.postMessage({
                 type: 'render',
                 chart,
@@ -49,8 +50,8 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart, zoom = 1.0 }) 
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            const { type, id, height: newHeight, message } = event.data;
-            
+            const { type, id, height: newHeight, message, text } = event.data;
+
             if (type === 'ready') {
                 console.log('Mermaid iframe ready signal received');
                 setIsReady(true);
@@ -65,6 +66,8 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart, zoom = 1.0 }) 
                 setError(message || 'Failed to render diagram');
                 setLoading(false);
                 if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            } else if (type === 'speak' && onSpeak && text) {
+                onSpeak(text);
             }
         };
 
@@ -82,8 +85,8 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart, zoom = 1.0 }) 
     }, [chart, isReady]);
 
     // Construct the URL using chrome.runtime.getURL
-    const iframeSrc = typeof chrome !== 'undefined' && chrome.runtime?.getURL 
-        ? chrome.runtime.getURL('mermaid-viewer.html') 
+    const iframeSrc = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+        ? chrome.runtime.getURL('mermaid-viewer.html')
         : '';
 
     if (!iframeSrc) {
@@ -93,10 +96,10 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart, zoom = 1.0 }) 
     return (
         <div style={{ width: '100%', position: 'relative', minHeight: '300px', display: 'flex', flexDirection: 'column' }}>
             {loading && !error && (
-                <div style={{ 
-                    position: 'absolute', 
-                    top: '100px', 
-                    left: '50%', 
+                <div style={{
+                    position: 'absolute',
+                    top: '100px',
+                    left: '50%',
                     transform: 'translate(-50%, -50%)',
                     color: '#52B788',
                     fontSize: '14px',
@@ -112,7 +115,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart, zoom = 1.0 }) 
             {error && (
                 <div style={{ padding: '20px', textAlign: 'center', background: 'rgba(255,107,107,0.1)', borderRadius: '16px', border: '1px solid rgba(255,107,107,0.3)' }}>
                     <div style={{ color: '#ff6b6b', fontSize: '14px', marginBottom: '12px' }}>{error}</div>
-                    <button 
+                    <button
                         onClick={sendRenderRequest}
                         style={{ background: '#ff6b6b', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
                     >

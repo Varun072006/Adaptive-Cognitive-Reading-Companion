@@ -66,13 +66,22 @@ export interface ReadingLevelResponse {
 async function chromeFetch(type: string, payload: any): Promise<any> {
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
         return new Promise((resolve) => {
-            chrome.runtime.sendMessage({ type, ...payload }, (res) => {
-                if (chrome.runtime.lastError) {
-                    resolve({ error: `Connection failed: ${chrome.runtime.lastError.message}` });
-                } else {
-                    resolve(res);
+            try {
+                // Accessing chrome.runtime.id throws if the context is invalidated
+                if (!chrome.runtime.id) {
+                    resolve({ error: 'Extension context invalidated' });
+                    return;
                 }
-            });
+                chrome.runtime.sendMessage({ type, ...payload }, (res) => {
+                    if (chrome.runtime?.lastError) {
+                        resolve({ error: `Connection failed: ${chrome.runtime.lastError.message}` });
+                    } else {
+                        resolve(res);
+                    }
+                });
+            } catch (err: any) {
+                resolve({ error: `Context error: ${err.message}` });
+            }
         });
     }
     return { error: 'Messaging system not available' };

@@ -102,6 +102,53 @@ const Popup: React.FC = () => {
                 <Toggle checked={prefs.privacyAIEnabled} onChange={(v) => updatePref('privacyAIEnabled', v)} label="AI Processing" icon="🤖" />
             </div>
 
+            {/* Page Background — dyslexia-friendly colors */}
+            <div className="space-y-1.5">
+                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1" style={fontStyle}>
+                    🎨 Page Background
+                </h3>
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/8 flex-wrap" style={fontStyle}>
+                    {([
+                        { key: 'cream', hex: '#FAF0DC', label: 'Cream' },
+                        { key: 'yellow', hex: '#FFF9C4', label: 'Yellow' },
+                        { key: 'blue', hex: '#DCEEFB', label: 'Blue' },
+                        { key: 'green', hex: '#DCEDC8', label: 'Green' },
+                        { key: 'peach', hex: '#FFE8CC', label: 'Peach' },
+                        { key: 'grey', hex: '#ECEFF1', label: 'Grey' },
+                    ]).map(({ key, hex, label }) => (
+                        <button
+                            key={key}
+                            title={label}
+                            onClick={() => updatePref('pageBgColor', key as any)}
+                            className="transition-all hover:scale-110 active:scale-95"
+                            style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '50%',
+                                backgroundColor: hex,
+                                border: prefs.pageBgColor === key
+                                    ? '3px solid #4A90D9'
+                                    : '2px solid rgba(255,255,255,0.2)',
+                                cursor: 'pointer',
+                                boxShadow: prefs.pageBgColor === key
+                                    ? '0 0 8px rgba(74,144,217,0.5)'
+                                    : '0 1px 3px rgba(0,0,0,0.2)',
+                                padding: 0,
+                            }}
+                        />
+                    ))}
+                    {prefs.pageBgColor !== 'none' && (
+                        <button
+                            onClick={() => updatePref('pageBgColor', 'none')}
+                            className="text-[10px] font-bold text-gray-400 hover:text-white transition-colors px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10"
+                            style={fontStyle}
+                        >
+                            ✕ Reset
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {/* Feature Tools — available when user struggles or selects text */}
             <div className="space-y-1.5">
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1" style={fontStyle}>

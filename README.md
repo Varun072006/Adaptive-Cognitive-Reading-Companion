@@ -1,232 +1,162 @@
 # 📖 Adaptive Cognitive Reading Companion (ACRC)
 
-An intelligent reading assistant designed for people with **dyslexia**. It uses visual aids, real-time struggle detection, AI-powered text simplification, OCR scanning, text-to-speech, and webcam-based eye tracking — all running **locally** for maximum privacy.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Local AI](https://img.shields.io/badge/AI-100%25%20Local-success)](#-privacy-and-ethics)
+[![Built with React](https://img.shields.io/badge/Built%20with-React-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
+[![Nex.js](https://img.shields.io/badge/Framework-Next.js%2016-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+
+An intelligent, privacy-first reading assistant designed for individuals with dyslexia, ADHD, or cognitive reading challenges. ACRC leverages local Large Language Models (LLMs) and computer vision to provide real-time struggle detection, text simplification, and advanced reading aids—all within a secure, offline environment.
 
 ---
 
-## ✨ Core Features
+## 📸 Visual Demo
 
-### 🔤 Smart Word Interaction (Chrome Extension)
-- **Hover to Highlight** — Cursor over any word → it becomes **bold + bigger** (1.15× scale)
-- **Click to Speak** — Click any word → hear it spoken aloud via TTS
-- **Struggle Detection** — Hover on a word for 2+ seconds → AI help popup appears automatically
-- **Re-reading Detection** — Scrolls back repeatedly? The extension notices and offers help
-- **Idle Detection** — Paused for 8+ seconds → gentle nudge with assistance options
-
-### 🧠 AI-Powered Help Popup
-When struggling is detected, a popup offers **7 instant actions**:
-| Action | Description |
-|--------|-------------|
-| 🔊 Read | Speaks the word aloud |
-| 💡 Define | Shows meaning, pronunciation, synonyms, analogy |
-| 📖 Simplify | Rewrites the sentence in simpler words |
-| 🧠 Explain | Explains what the sentence means |
-| ✂️ Break Down | Splits into small numbered chunks |
-| 🔄 Rephrase | Rewrites it a completely different way |
-| 📋 Bullets | Summarizes as bullet points |
-
-3 simplification levels: 🟢 Easy → 🟡 Simpler → 🔴 Simplest
-
-### 📏 Reading Aids
-- **Reading Ruler** — Horizontal guide line follows your cursor
-- **Line Focus** — Dims everything except the current line
-- **Paragraph Isolation** — Blurs all paragraphs except the one you're hovering
-- **Ad & Sidebar Hiding** — Removes distracting page elements
-
-### 🔤 Typography Controls
-- **Dyslexia-friendly fonts** — OpenDyslexic, Lexie Readable, or system font
-- **Adjustable sizing** — Font size (80%–150%), letter/word spacing, line height
-- **Visual themes** — Dark mode, high contrast, cream/sky/mint backgrounds
-- **Custom highlight color** — 6 color options for word highlights
-
-### 👁️ Eye Tracking (WebGazer.js)
-- **Webcam-based gaze tracking** — Detects where your eyes are looking
-- **Fixation detection** — Eyes stuck on a word for 3+ seconds → triggers help popup
-- **Gaze dot visualization** — Small pink dot shows where you're looking
-- **Privacy-first** — Only activates when Camera Access is toggled ON
-- **Zero persistence** — No gaze data is saved
-
-### 📷 OCR Scanner (Web App)
-- **Camera capture** — Point at text, capture, and extract instantly
-- **Image upload** — Upload JPG, PNG, or PDF files
-- **PaddleOCR** — Industrial-grade OCR engine running locally
-- **Auto-simplify** — Extracted text is automatically simplified by Llama 3
-- **Read aloud** — Listen to both original and simplified text
-
-### 📊 Progress Dashboard
-- **Reading stats** — Words read, sessions completed, reading streaks
-- **Session history** — Scrollable log of past reading sessions
-- **Tricky Words** — Frequently confused words ranked by frequency
-- **Milestones** — Achievements for reading goals
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><b>AI Assistance Popup</b><br/><img src="Images/Screenshot 2026-03-10 110228.png" width="450px" alt="AI Assistance Popup"/><br/><i>8-mode simplification, analogies & definitions</i></td>
+      <td align="center"><b>Interactive Mind Map</b><br/><img src="Images/Screenshot 2026-03-10 110240.png" width="450px" alt="Mind Map Feature"/><br/><i>Visualizing complex concepts dynamically</i></td>
+    </tr>
+  </table>
+</div>
 
 ---
 
-## 🏗️ Architecture
+## 🚀 Vision
+ACRC aims to make the web accessible for everyone by providing a suite of tools that adapt to the reader's needs. By processing everything locally, we ensure that the most personal data—what you read and how you read it—never leaves your device.
 
-```
-┌─────────────────────────────────────────────┐
-│             Chrome Extension                 │
-│  ┌──────────┬──────────┬──────────────────┐ │
-│  │ Content  │  Popup   │ Service Worker   │ │
-│  │ Script   │  (React) │ (Background)     │ │
-│  ├──────────┴──────────┴──────────────────┤ │
-│  │ DomParser · StruggleDetector · TTS     │ │
-│  │ ReaderOverlay · StrugglePopup · Gaze   │ │
-│  └────────────────────────────────────────┘ │
-│                    │ API calls               │
-│                    ▼                         │
-│  ┌────────────────────────────────────────┐ │
-│  │         Next.js Web App (:3000)        │ │
-│  │  /api/simplify  /api/define            │ │
-│  │  /api/ocr       /api/reading-level     │ │
-│  │  /dashboard     /scanner               │ │
-│  └────────────┬───────────────┬───────────┘ │
-│               │               │             │
-│               ▼               ▼             │
-│  ┌────────────────┐  ┌────────────────────┐ │
-│  │ Ollama (Llama3)│  │ PaddleOCR Service  │ │
-│  │    :11434      │  │     :8866          │ │
-│  └────────────────┘  └────────────────────┘ │
-└─────────────────────────────────────────────┘
+---
+
+## ✨ Key Features
+
+### 🛠️ Smart Reading Assistance (Chrome Extension)
+- **AI Help Popup**: Trigger instant text transformation using local Llama 3:
+  - **Simpler/Simplest**: Multi-level text simplification.
+  - **Explain**: Detailed sentence breakdown with **Real-world Analogies**.
+  - **Rephrase & Bullets**: Instant structural transformation for better scanning.
+  - **Dictionary**: Context-aware definitions and synonyms.
+- **Interactive Mind Maps**: Generate visual concept maps from selected text to aid structural understanding.
+- **Struggle Detection**: Automatically detects reading difficulties based on hover time and re-reading patterns.
+- **Interactive Typography**: Hover to highlight words with dynamic scaling and click-to-speech (TTS) integration.
+- **Eye Tracking**: Experimental gaze-based struggle detection using `WebGazer.js` for hands-free assistance.
+
+### 📏 Advanced Reading Aids
+- **Reading Ruler**: Customizable guide line to maintain focus across lines.
+- **Line Focus & Paragraph Isolation**: Dims or blurs non-essential content to minimize distractions.
+- **Dyslexia-Friendly UI**: One-click font switching (OpenDyslexic, Lexie Readable) and high-contrast color themes.
+
+### 📷 Industrial OCR & Intelligence
+- **Document Scanning**: Extract text from images or physical documents via webcam using `PaddleOCR`.
+- **Auto-Simplification Pipeline**: Extracted text is automatically passed through the simplification engine for immediate comprehension.
+- **Reading Level Analysis**: Real-time Flesch-Kincaid readability scoring for any web content.
+
+---
+
+## 🏗️ Architecture & Technology Stack
+
+The project is architected as a distributed local system to ensure performance and privacy.
+
+```mermaid
+graph TD
+    subgraph "Client Side (Browser)"
+        Ext[Chrome Extension - Vite/React]
+        WG[WebGazer.js - Gaze Tracking]
+    end
+
+    subgraph "Application Layer (Node.js)"
+        Next[Next.js 15 Web App]
+        API[API Routes /simplify, /define, /ocr]
+    end
+
+    subgraph "Intelligence Layer (Local Services)"
+        Ollama[Ollama - Llama 3]
+        OCR[Python FastAPI - PaddleOCR]
+    end
+
+    Ext -->|HTTP/POST| API
+    API -->|Prompting| Ollama
+    API -->|Image Processing| OCR
+    WG -->|Local Data| Ext
 ```
 
-**Tech Stack:**
-- **Extension**: Vite + React + TypeScript, Chrome MV3
-- **Web App**: Next.js 16 (App Router) + TypeScript + TailwindCSS v4
-- **OCR**: Python FastAPI + PaddleOCR
-- **AI**: Ollama (Llama 3) — 100% local, no cloud
+### Tech Stack Breakdown
+- **Frontend**: Vite, React 18, TypeScript, TailwindCSS v4.
+- **Backend**: Next.js 15 (App Router), Python 3.10+, FastAPI.
+- **Models**: Ollama (Llama 3), PaddleOCR (PP-OCRv4).
+- **Computer Vision**: WebGazer.js (Eye tracking).
 
 ---
 
-## 🚀 Quick Start
+## 📁 Repository Structure
+
+```text
+.
+├── extension/               # Chrome MV3 Extension (React/Vite)
+├── web/                     # Central Hub & API Gateway (Next.js)
+├── ocr-service/             # ML Microservice (Python/FastAPI)
+├── Images/                  # Project screenshots and documentation assets
+└── README.md                # Project Documentation
+```
+
+---
+
+## 🛠️ Installation Guide
 
 ### Prerequisites
-- Node.js 18+
-- Python 3.8+
-- [Ollama](https://ollama.com) installed with `llama3` model
-- Chrome browser
+- **Node.js**: v18.0+
+- **Python**: v3.8+ (Add to PATH)
+- **Ollama**: [Download here](https://ollama.com)
+- **Chrome/Edge**: Developer Mode enabled
 
-### 1. Clone & Install
-
+### 1. Setup Local AI (Ollama)
 ```bash
-# Install extension dependencies
-cd extension
-npm install
-
-# Install web app dependencies
-cd ../web
-npm install
-
-# Install OCR service dependencies
-cd ../ocr-service
-pip install -r requirements.txt
+ollama pull llama3
+ollama serve
 ```
 
-### 2. Start All Services
-
-Open **3 terminal windows**:
-
+### 2. Setup OCR Service
 ```bash
-# Terminal 1: Ollama AI
-ollama run llama3
-
-# Terminal 2: OCR Service
 cd ocr-service
-uvicorn main:app --port 8866
+python -m venv venv
+source venv/bin/activate  # venv\Scripts\activate on Windows
+pip install -r requirements.txt
+python main.py
+```
 
-# Terminal 3: Web App
+### 3. Setup Web Dashboard & API
+```bash
 cd web
+npm install
 npm run dev
 ```
 
-### 3. Build & Load Extension
-
-```bash
-# Build the extension
-cd extension
-npm run build
-```
-
-Then in Chrome:
-1. Go to `chrome://extensions/`
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked** → select `extension/dist` folder
-4. Pin the 📖 icon in your toolbar
-
-### 4. Start Reading!
-- Browse any website → extension activates automatically
-- Visit http://localhost:3000 for the web dashboard & scanner
+### 4. Install Chrome Extension
+1. Build the extension:
+   ```bash
+   cd extension
+   npm install
+   npm run build
+   ```
+2. Open `chrome://extensions/` in Chrome.
+3. Enable **Developer Mode**.
+4. Click **Load Unpacked** and select the `extension/dist` folder.
 
 ---
 
-## 📁 Project Structure
-
-```
-Dyslexia_adaptive_learner/
-├── extension/                    # Chrome Extension (Vite + React + TS)
-│   ├── src/
-│   │   ├── content/              # Content script (injected into pages)
-│   │   │   ├── index.tsx         # Main app — mounts overlay + popup
-│   │   │   ├── DomParser.ts      # Wraps words in spans for interaction
-│   │   │   ├── StruggleDetector.ts   # Detects reading difficulties
-│   │   │   ├── StrugglePopup.tsx # AI help popup component
-│   │   │   ├── ReaderOverlay.tsx # Ruler + line focus overlay
-│   │   │   ├── GazeTracker.ts    # WebGazer.js eye tracking
-│   │   │   ├── TTSEngine.ts      # Text-to-speech engine
-│   │   │   └── styles.css        # Hover, gaze dot, webcam styles
-│   │   ├── popup/                # Extension popup UI
-│   │   │   ├── Popup.tsx         # 6-tab settings interface
-│   │   │   ├── main.tsx          # React entry point
-│   │   │   └── popup.html        # HTML shell
-│   │   ├── background/
-│   │   │   └── service-worker.ts # Session tracking & stats
-│   │   └── lib/
-│   │       ├── constants.ts      # Preferences & defaults
-│   │       ├── api.ts            # API client for backend
-│   │       └── ReadingLevel.ts   # Flesch-Kincaid calculator
-│   └── public/manifest.json     # Chrome MV3 manifest
-│
-├── web/                          # Next.js Web App
-│   └── src/app/
-│       ├── page.tsx              # Landing page
-│       ├── scanner/page.tsx      # OCR scanner (camera + upload)
-│       ├── dashboard/page.tsx    # Reading progress dashboard
-│       └── api/
-│           ├── simplify/route.ts # 8-mode AI simplification
-│           ├── define/route.ts   # Word definition + synonyms
-│           ├── ocr/route.ts      # OCR → simplify pipeline
-│           └── reading-level/route.ts  # Reading difficulty analysis
-│
-└── ocr-service/                  # PaddleOCR microservice
-    └── main.py                   # FastAPI + PaddleOCR
-```
-
----
-
-## 🔒 Privacy
-
-- **All AI runs locally** via Ollama — your text never leaves your computer
-- **No cloud services** — everything operates on your machine
-- **No tracking** — reading data stored only in Chrome's local storage
-- **Camera opt-in** — webcam eye tracking is disabled by default
-- **Data clearing** — one-click deletion of all reading data
-- **Open source** — fully auditable code
-
----
-
-## �️ API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/simplify` | POST | 8-mode text simplification with 3 difficulty levels |
-| `/api/define` | POST | Rich word definitions (pronunciation, synonyms, analogy) |
-| `/api/ocr` | POST | Image → text extraction + optional simplification |
-| `/api/reading-level` | POST | Flesch-Kincaid readability analysis |
+## 🔒 Privacy and Ethics
+ACRC is built on the principle of **Zero-Knowledge Architecture**:
+- **Local Inference**: AI processing occurs on your hardware. No text is sent to external APIs (OpenAI, Google, etc.).
+- **Ephemeral Gaze Data**: Webcam data for eye tracking is processed frame-by-frame and never stored or transmitted.
+- **Open Source**: Every line of code is auditable to ensure user trust.
 
 ---
 
 ## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-MIT — Built with ❤️ for dyslexic learners
-# Adaptive-Cognitive-Reading-Companion
-# Adaptive-Cognitive-Reading-Companion
+---
+
+## 🤝 Contributing
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md).
+
+Built with ❤️ for accessible reading.

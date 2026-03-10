@@ -1,4 +1,4 @@
-const d = {
+const u = {
   // Master toggle
   enabled: !0,
   // Typography — always OpenDyslexia
@@ -15,20 +15,31 @@ const d = {
   // Privacy
   privacyAIEnabled: !0,
   privacyCameraEnabled: !1,
-  privacyLogsEnabled: !0
-}, i = "http://localhost:3000/api";
-async function c(t, e) {
+  privacyLogsEnabled: !0,
+  // Page background overlay (dyslexia-friendly)
+  pageBgColor: "cream"
+}, c = "http://localhost:3000/api";
+async function l(t, e) {
   return typeof chrome < "u" && chrome.runtime && chrome.runtime.sendMessage ? new Promise((r) => {
-    chrome.runtime.sendMessage({ type: t, ...e }, (a) => {
-      chrome.runtime.lastError ? r({ error: `Connection failed: ${chrome.runtime.lastError.message}` }) : r(a);
-    });
+    try {
+      if (!chrome.runtime.id) {
+        r({ error: "Extension context invalidated" });
+        return;
+      }
+      chrome.runtime.sendMessage({ type: t, ...e }, (a) => {
+        var n;
+        (n = chrome.runtime) != null && n.lastError ? r({ error: `Connection failed: ${chrome.runtime.lastError.message}` }) : r(a);
+      });
+    } catch (a) {
+      r({ error: `Context error: ${a.message}` });
+    }
   }) : { error: "Messaging system not available" };
 }
-async function u(t) {
+async function y(t) {
   if (typeof document < "u")
-    return await c("API_SIMPLIFY", { req: t });
+    return await l("API_SIMPLIFY", { req: t });
   try {
-    const e = await fetch(`${i}/simplify`, {
+    const e = await fetch(`${c}/simplify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(t)
@@ -39,11 +50,11 @@ async function u(t) {
     return { result: "", error: e.message || "Failed to simplify text" };
   }
 }
-async function y(t) {
+async function g(t) {
   if (typeof document < "u")
-    return await c("API_DEFINE", { req: t });
+    return await l("API_DEFINE", { req: t });
   try {
-    const e = await fetch(`${i}/define`, {
+    const e = await fetch(`${c}/define`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(t)
@@ -65,9 +76,9 @@ async function y(t) {
 }
 async function f(t) {
   if (typeof document < "u")
-    return await c("API_READING_LEVEL", { text: t });
+    return await l("API_READING_LEVEL", { text: t });
   try {
-    const e = await fetch(`${i}/reading-level`, {
+    const e = await fetch(`${c}/reading-level`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: t })
@@ -89,7 +100,7 @@ async function f(t) {
   }
 }
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.set({ acrc_prefs: d }), chrome.storage.local.get("acrc_progress", (t) => {
+  chrome.storage.local.set({ acrc_prefs: u }), chrome.storage.local.get("acrc_progress", (t) => {
     if (!t.acrc_progress) {
       const e = {
         totalSessions: 0,
@@ -108,9 +119,9 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 chrome.runtime.onMessage.addListener((t, e, r) => {
   if (t.type === "SESSION_END")
-    return g(t.session).then(() => r({ ok: !0 })), !0;
+    return h(t.session).then(() => r({ ok: !0 })), !0;
   if (t.type === "CONFUSED_WORD")
-    return h(t.word).then(() => r({ ok: !0 })), !0;
+    return p(t.word).then(() => r({ ok: !0 })), !0;
   if (t.type === "GET_PROGRESS")
     return chrome.storage.local.get("acrc_progress", (a) => {
       r(a.acrc_progress || {});
@@ -120,9 +131,9 @@ chrome.runtime.onMessage.addListener((t, e, r) => {
       r(a.acrc_reading_history || []);
     }), !0;
   if (t.type === "API_SIMPLIFY")
-    return u(t.req).then(r), !0;
-  if (t.type === "API_DEFINE")
     return y(t.req).then(r), !0;
+  if (t.type === "API_DEFINE")
+    return g(t.req).then(r), !0;
   if (t.type === "API_READING_LEVEL")
     return f(t.text).then(r), !0;
 });
@@ -136,7 +147,7 @@ chrome.runtime.onMessageExternal.addListener((t, e, r) => {
       r(a.acrc_reading_history || []);
     }), !0;
 });
-async function g(t) {
+async function h(t) {
   const e = t.endTime ? (t.endTime - t.startTime) / 6e4 : 0, a = (await chrome.storage.local.get("acrc_reading_history")).acrc_reading_history || [];
   a.unshift(t), a.length > 100 && (a.length = 100), await chrome.storage.local.set({ acrc_reading_history: a });
   const o = (await chrome.storage.local.get("acrc_progress")).acrc_progress || {
@@ -151,16 +162,16 @@ async function g(t) {
   o.totalSessions++, o.totalWordsRead += t.wordsRead, o.totalTimeMinutes += e;
   const s = t.date || (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   if (o.dailyStats[s] || (o.dailyStats[s] = { words: 0, minutes: 0, sessions: 0 }), o.dailyStats[s].words += t.wordsRead, o.dailyStats[s].minutes += e, o.dailyStats[s].sessions++, o.lastActiveDate !== s) {
-    const n = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
-    o.streakDays = o.lastActiveDate === n ? o.streakDays + 1 : 1, o.lastActiveDate = s;
+    const i = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    o.streakDays = o.lastActiveDate === i ? o.streakDays + 1 : 1, o.lastActiveDate = s;
   }
-  for (const n of t.confusedWords) {
-    const l = n.toLowerCase();
-    o.confusedWordsMap[l] = (o.confusedWordsMap[l] || 0) + 1;
+  for (const i of t.confusedWords) {
+    const d = i.toLowerCase();
+    o.confusedWordsMap[d] = (o.confusedWordsMap[d] || 0) + 1;
   }
   await chrome.storage.local.set({ acrc_progress: o });
 }
-async function h(t) {
+async function p(t) {
   const r = (await chrome.storage.local.get("acrc_progress")).acrc_progress || {
     totalSessions: 0,
     totalWordsRead: 0,

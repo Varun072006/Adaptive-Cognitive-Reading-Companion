@@ -20,7 +20,8 @@
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M8 4l16 12-16 12V4z' fill='%234A90D9' stroke='white' stroke-width='2'/%3E%3C/svg%3E") 8 4, auto !important;
 }
 
-.acrc-popup, .acrc-popup * {
+.acrc-popup,
+.acrc-popup * {
     font-family: 'OpenDyslexic', 'Comic Sans MS', cursive !important;
     cursor: inherit;
 }
@@ -115,7 +116,21 @@
     color: #ffffff !important;
     transform: scale(1.35) translateY(-2px);
     font-weight: 800;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 0 2px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.3);
     z-index: 100;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Color toolbar swatch styles */
+.acrc-color-swatch:hover {
+    transform: scale(1.25) !important;
+    box-shadow: 0 0 12px rgba(74, 144, 217, 0.5) !important;
+}
+
+.acrc-color-swatch:active {
+    transform: scale(0.95) !important;
+}
+
+.acrc-color-toolbar button:hover {
+    opacity: 1;
+}

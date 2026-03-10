@@ -23,6 +23,9 @@ export const DEFAULT_PREFERENCES = {
     privacyAIEnabled: true,
     privacyCameraEnabled: false,
     privacyLogsEnabled: true,
+
+    // Page background overlay (dyslexia-friendly)
+    pageBgColor: 'cream' as 'none' | 'cream' | 'yellow' | 'blue' | 'green' | 'peach' | 'grey',
 };
 
 export type Preferences = typeof DEFAULT_PREFERENCES;

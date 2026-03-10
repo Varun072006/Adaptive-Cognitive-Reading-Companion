@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model UserProfile {
+  extensionId   String   @id
+  totalSessions Int      @default(0)
+  totalWords    Int      @default(0)
+  totalTimeMin  Float    @default(0.0)
+  streakDays    Int      @default(0)
+  confusedWords Json?    // Stores the frequency map
+  dailyStats    Json?    // Stores the last 7 days chart data
+  aiInsight     String?  @db.Text
+  lastUpdated   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}

@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --accent-blue: #4A90D9;
+  --accent-green: #52B788;
+  --accent-purple: #7B68EE;
+  --accent-orange: #F4A261;
+  --surface-dark: #1A1A2E;
+  --surface-card: #16213E;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: linear-gradient(135deg, #0f0c29 0%, #0a0a0a 50%, #1a1a2e 100%);
+  color: var(--foreground);
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #4A90D9, #7B68EE);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effect */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(74, 144, 217, 0.3);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(82, 183, 136, 0.3);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(123, 104, 238, 0.3);
+}
+
+.glow-orange {
+  box-shadow: 0 0 20px rgba(244, 162, 97, 0.3);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(231, 111, 81, 0.3);
+}
